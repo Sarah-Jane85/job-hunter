@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.connectors.arbeitnow import fetch_jobs as arbeitnow_jobs
 from backend.connectors.adzuna import fetch_jobs as adzuna_jobs
+from backend.connectors.himalayas import fetch_jobs as himalayas_jobs
 
 app = FastAPI(title="Job Hunter API")
 
@@ -26,3 +27,8 @@ def get_arbeitnow_jobs(keywords: str = "data analyst"):
 def get_adzuna_jobs(country: str = "de", keywords: str = "data analyst"):
     jobs = adzuna_jobs(keywords=keywords, country=country)
     return {"source": f"Adzuna {country.upper()}", "count": len(jobs), "jobs": jobs}
+
+@app.get("/jobs/himalayas")
+def get_himalayas_jobs(keywords: str = "data analyst"):
+    jobs = himalayas_jobs(keywords=keywords)
+    return {"source": "Himalayas", "count": len(jobs), "jobs": jobs}
