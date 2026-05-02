@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Job Hunter 🌊</title>
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             --ocean: #0a4f6e;
@@ -630,10 +631,10 @@
 
 <header>
     <div class="header-inner">
-        <div class="logo">Job<span>Hunter</span> 🌊</div>
+        <a class="logo" href="index.html">Job<span>Hunter</span> 🌊</a>
         <div style="display:flex;gap:0.75rem;align-items:center;">
-            <div class="job-count-badge" id="headerBadge">0 jobs found</div>
-            <button onclick="window.location.href='tracker.html'" style="cursor:pointer;background:var(--ocean);color:white;border:none;padding:4px 12px;border-radius:20px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;">📋 My Tracker</button>
+            <div id="userInfo" style="display:none;color:white;font-size:0.85rem;"></div>
+            <button id="authBtn" onclick="handleAuth()" style="cursor:pointer;background:var(--accent);color:var(--deep);border:none;padding:6px 16px;border-radius:20px;font-family:'Syne',sans-serif;font-weight:700;font-size:0.8rem;">Sign in with Google</button>
         </div>
     </div>
 </header>
@@ -753,9 +754,11 @@
 
     <!-- JOBS -->
     <div class="jobs-area">
-        <div class="jobs-header">
-            <h2 id="jobsTitle">Ready to search 🌊</h2>
+        <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;">
+            <button id="tabSearch" style="padding:0.85rem 1.75rem;background:var(--ocean);border:none;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;color:white;cursor:pointer;box-shadow:0 4px 12px rgba(10,79,110,0.3);">🔍 Job Search</button>
+            <button onclick="window.location.href='tracker.html'" style="padding:0.85rem 1.75rem;background:var(--accent);border:none;border-radius:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:1.05rem;color:var(--deep);cursor:pointer;box-shadow:0 4px 12px rgba(244,164,53,0.3);">📋 My Application Tracker</button>
         </div>
+    <div id="jobsTitle" style="font-family:'Syne',sans-serif;font-weight:700;font-size:1rem;color:var(--muted);margin-bottom:1rem;"></div>
         <div class="sidebar-card" style="margin-bottom:1.5rem;">
             <div class="sidebar-title">Search</div>
             <div class="search-bar" style="flex-direction:column;gap:0.75rem;">
@@ -812,11 +815,186 @@
             
 <script>
     const API_BASE = 'http://127.0.0.1:8000';
+    const SUPABASE_URL = 'https://zusxoqtkyueahjscviwv.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1c3hvcXRreXVlYWhqc2N2aXd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MjY3ODUsImV4cCI6MjA5MzMwMjc4NX0.O5HlHcHF-IX9XYAwm9TaWXmU_mdk-UFENH23GmX7aQY';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let currentUser = null;
+    // Auth functions
+async function handleAuth() {
+    if (currentUser) {
+        await sb.auth.signOut();
+        currentUser = null;
+        updateAuthUI();
+    } else {
+        await sb.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+                redirectTo: window.location.href
+            }
+        });
+    }
+}
+
+function updateAuthUI() {
+    const btn = document.getElementById('authBtn');
+    const userInfo = document.getElementById('userInfo');
+    if (currentUser) {
+        btn.textContent = 'Sign out';
+        btn.style.background = 'transparent';
+        btn.style.color = 'white';
+        btn.style.border = '1.5px solid rgba(255,255,255,0.3)';
+        userInfo.style.display = 'block';
+        userInfo.textContent = `👋 ${currentUser.user_metadata?.name || currentUser.email}`;
+    } else {
+        btn.textContent = 'Sign in with Google';
+        btn.style.background = 'var(--accent)';
+        btn.style.color = 'var(--deep)';
+        btn.style.border = 'none';
+        userInfo.style.display = 'none';
+    }
+}
+
+// Check if user is already signed in
+sb.auth.onAuthStateChange((event, session) => {
+    currentUser = session?.user || null;
+    updateAuthUI();
+    if (currentUser) loadUserData();
+});
+
+// Handle auth callback from URL
+async function handleAuthCallback() {
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token')) {
+        const { data, error } = await sb.auth.getSession();
+        if (data?.session) {
+            currentUser = data.session.user;
+            updateAuthUI();
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    }
+}
+
+handleAuthCallback();
+
     let allJobs = [];
     let trackedJobs = JSON.parse(localStorage.getItem('trackedJobs') || '[]');
     let excludeKeywords = JSON.parse(localStorage.getItem('excludeKeywords') || '["banking", "insurance", "finance", "data engineer"]');
-    // Dream Companies
     let dreamCompanies = JSON.parse(localStorage.getItem('dreamCompanies') || '[]');
+    
+    // Database functions
+async function loadUserData() {
+    if (!currentUser) return;
+
+    // Load tracked jobs
+    const { data: jobs } = await sb
+        .from('tracked_jobs')
+        .select('*')
+        .order('saved_at', { ascending: false });
+    
+    if (jobs) trackedJobs = jobs.map(j => ({
+        title: j.title,
+        company: j.company,
+        location: j.location,
+        url: j.url,
+        source: j.source,
+        status: j.status,
+        notes: j.notes,
+        manual: j.manual,
+        savedAt: j.saved_at,
+        db_id: j.id
+    }));
+
+    // Load dream companies
+    const { data: companies } = await sb
+        .from('dream_companies')
+        .select('*')
+        .order('created_at', { ascending: true });
+    
+    if (companies) dreamCompanies = companies.map(c => ({
+        name: c.name,
+        url: c.url,
+        db_id: c.id
+    }));
+
+    // Load exclude keywords
+    const { data: keywords } = await sb
+        .from('exclude_keywords')
+        .select('*');
+    
+    if (keywords && keywords.length > 0) {
+        excludeKeywords = keywords.map(k => k.keyword);
+    }
+
+    // Re-render everything
+    renderExcludeTags();
+    renderDreamCompanies();
+    renderTracker();
+}
+
+async function saveJobToDb(job) {
+    if (!currentUser) return null;
+    const { data, error } = await sb
+        .from('tracked_jobs')
+        .insert({
+            user_id: currentUser.id,
+            title: job.title,
+            company: job.company,
+            location: job.location,
+            url: job.url,
+            source: job.source,
+            status: job.status || 'saved',
+            notes: job.notes || '',
+            manual: job.manual || false,
+        })
+        .select()
+        .single();
+    return data;
+}
+
+async function deleteJobFromDb(db_id) {
+    if (!currentUser) return;
+    await sb.from('tracked_jobs').delete().eq('id', db_id);
+}
+
+async function updateJobStatusInDb(db_id, status) {
+    if (!currentUser) return;
+    await sb.from('tracked_jobs').update({ status }).eq('id', db_id);
+}
+
+async function updateJobNotesInDb(db_id, notes) {
+    if (!currentUser) return;
+    await sb.from('tracked_jobs').update({ notes }).eq('id', db_id);
+}
+
+async function saveDreamCompanyToDb(company) {
+    if (!currentUser) return null;
+    const { data } = await sb
+        .from('dream_companies')
+        .insert({ user_id: currentUser.id, name: company.name, url: company.url })
+        .select()
+        .single();
+    return data;
+}
+
+async function deleteDreamCompanyFromDb(db_id) {
+    if (!currentUser) return;
+    await sb.from('dream_companies').delete().eq('id', db_id);
+}
+
+async function saveKeywordToDb(keyword) {
+    if (!currentUser) return;
+    await sb.from('exclude_keywords')
+        .insert({ user_id: currentUser.id, keyword });
+}
+
+async function deleteKeywordFromDb(keyword) {
+    if (!currentUser) return;
+    await sb.from('exclude_keywords')
+        .delete()
+        .eq('user_id', currentUser.id)
+        .eq('keyword', keyword);
+}
+
     // Init exclude tags
     function renderExcludeTags() {
         const container = document.getElementById('excludeTags');
@@ -828,21 +1006,23 @@
         `).join('');
     }
 
-    function addExclude() {
+    async function addExclude() {
         const input = document.getElementById('excludeInput');
         const val = input.value.trim().toLowerCase();
         if (val && !excludeKeywords.includes(val)) {
             excludeKeywords.push(val);
-            localStorage.setItem('excludeKeywords', JSON.stringify(excludeKeywords)); // add this
+            if (currentUser) await saveKeywordToDb(val);
+            else localStorage.setItem('excludeKeywords', JSON.stringify(excludeKeywords));
             renderExcludeTags();
             renderJobs();
         }
         input.value = '';
     }
 
-    function removeExclude(keyword) {
+    async function removeExclude(keyword) {
         excludeKeywords = excludeKeywords.filter(k => k !== keyword);
-        localStorage.setItem('excludeKeywords', JSON.stringify(excludeKeywords));
+        if (currentUser) await deleteKeywordFromDb(keyword);
+        else localStorage.setItem('excludeKeywords', JSON.stringify(excludeKeywords));
         renderExcludeTags();
         renderJobs();
     }
@@ -871,26 +1051,26 @@
 
     // Search jobs
     async function searchJobs() {
-        const keywords = document.getElementById('keywordsInput').value || 'data analyst';
-        const location = document.getElementById('locationInput').value || '';
+    const keywords = document.getElementById('keywordsInput').value || 'data analyst';
+    const location = document.getElementById('locationInput').value || '';
 
-        document.getElementById('loading').style.display = 'block';
-        document.getElementById('jobsList').innerHTML = '';
-        document.getElementById('jobsTitle').textContent = 'Searching...';
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('jobsList').innerHTML = '';
 
-        try {
-            const params = new URLSearchParams({ keywords, location });
-            const res = await fetch(`${API_BASE}/jobs/all?${params}`);
-            const data = await res.json();
-            allJobs = data.jobs || [];
-            renderJobs();
-        } catch (err) {
-            document.getElementById('jobsTitle').textContent = 'Error connecting to backend';
-            console.error(err);
-        } finally {
-            document.getElementById('loading').style.display = 'none';
-        }
+    try {
+        const params = new URLSearchParams({ keywords, location });
+        const res = await fetch(`${API_BASE}/jobs/all?${params}`);
+        const data = await res.json();
+        allJobs = data.jobs || [];
+        renderJobs();
+    } catch (err) {
+        const titleEl = document.getElementById('jobsTitle');
+        if (titleEl) titleEl.textContent = 'Error connecting to backend';
+        console.error(err);
+    } finally {
+        document.getElementById('loading').style.display = 'none';
     }
+}
 
     // Filter and render
     function renderJobs() {
@@ -929,10 +1109,13 @@
         if (sort === 'location') filtered.sort((a, b) => (a.location || '').localeCompare(b.location || ''));
 
         // Update header
-        document.getElementById('jobsTitle').textContent = `${filtered.length} jobs found`;
-        document.getElementById('headerBadge').textContent = `${filtered.length} jobs`;
-        document.getElementById('headerBadge').style.display = 'block';
-
+        const titleEl = document.getElementById('jobsTitle');
+        if (titleEl) titleEl.textContent = `${filtered.length} jobs found`;
+        const badgeEl = document.getElementById('headerBadge');
+        if (badgeEl) {
+            badgeEl.textContent = `${filtered.length} jobs`;
+            badgeEl.style.display = 'block';
+        }
         const list = document.getElementById('jobsList');
 
         if (filtered.length === 0) {
@@ -972,24 +1155,33 @@
     }
 
     // Save/unsave jobs
-    function toggleSave(index) {
-        const job = allJobs.filter(job => {
-            const text = `${job.title} ${job.company} ${job.description}`.toLowerCase();
-            return !excludeKeywords.some(kw => text.includes(kw));
-        })[index];
+    async function toggleSave(index) {
+    const job = allJobs.filter(job => {
+        const text = `${job.title} ${job.company} ${job.description}`.toLowerCase();
+        return !excludeKeywords.some(kw => text.includes(kw));
+    })[index];
 
-        if (!job) return;
+    if (!job) return;
 
-        const existingIndex = trackedJobs.findIndex(t => t.url === job.url);
-        if (existingIndex >= 0) {
-            trackedJobs.splice(existingIndex, 1);
+    const existingIndex = trackedJobs.findIndex(t => t.url === job.url);
+    if (existingIndex >= 0) {
+        const existing = trackedJobs[existingIndex];
+        if (existing.db_id) await deleteJobFromDb(existing.db_id);
+        else localStorage.setItem('trackedJobs', JSON.stringify(trackedJobs));
+        trackedJobs.splice(existingIndex, 1);
+    } else {
+        const newJob = { ...job, status: 'saved', savedAt: new Date().toISOString() };
+        if (currentUser) {
+            const saved = await saveJobToDb(newJob);
+            if (saved) newJob.db_id = saved.id;
         } else {
-            trackedJobs.push({ ...job, status: 'saved', savedAt: new Date().toISOString() });
+            trackedJobs.push(newJob);
+            localStorage.setItem('trackedJobs', JSON.stringify(trackedJobs));
         }
-
-        localStorage.setItem('trackedJobs', JSON.stringify(trackedJobs));
-        renderJobs();
+        trackedJobs.push(newJob);
     }
+    renderJobs();
+}
 
     // Tracker
     function renderTracker() {
@@ -1005,29 +1197,6 @@
         `;
     }
     
-    // Just show a summary, not all jobs
-    const counts = {
-        saved: trackedJobs.filter(j => j.status === 'saved').length,
-        applied: trackedJobs.filter(j => j.status === 'applied').length,
-        interview: trackedJobs.filter(j => j.status === 'interview').length,
-        offer: trackedJobs.filter(j => j.status === 'offer').length,
-        rejected: trackedJobs.filter(j => j.status === 'rejected').length,
-    };
-
-    list.innerHTML = `
-        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem;">
-            <span style="font-size:0.85rem;color:var(--muted);">💾 ${counts.saved} saved</span>
-            <span style="font-size:0.85rem;color:var(--wave);">📤 ${counts.applied} applied</span>
-            <span style="font-size:0.85rem;color:var(--accent);">🗣️ ${counts.interview} interview</span>
-            <span style="font-size:0.85rem;color:#2ecc71;">🎉 ${counts.offer} offer</span>
-            <span style="font-size:0.85rem;color:#e74c3c;">❌ ${counts.rejected} rejected</span>
-        </div>
-        <a href="tracker.html" style="display:inline-block;padding:0.5rem 1.2rem;background:var(--ocean);color:white;border-radius:8px;font-family:'Syne',sans-serif;font-weight:600;font-size:0.85rem;text-decoration:none;">
-            📋 View all ${trackedJobs.length} applications →
-        </a>
-    `;
-
-
     function updateStatus(index, status) {
         trackedJobs[index].status = status;
         localStorage.setItem('trackedJobs', JSON.stringify(trackedJobs));
@@ -1067,20 +1236,28 @@
         `).join('');
     }
 
-    function addDreamCompany() {
+    async function addDreamCompany() {
         const name = document.getElementById('dreamCompanyName').value.trim();
         const url = document.getElementById('dreamCompanyUrl').value.trim();
         if (!name || !url) return;
-        dreamCompanies.push({ name, url });
-        localStorage.setItem('dreamCompanies', JSON.stringify(dreamCompanies));
+        const newCompany = { name, url };
+        if (currentUser) {
+            const saved = await saveDreamCompanyToDb(newCompany);
+            if (saved) newCompany.db_id = saved.id;
+        } else {
+            localStorage.setItem('dreamCompanies', JSON.stringify(dreamCompanies));
+        }
+        dreamCompanies.push(newCompany);
         renderDreamCompanies();
         document.getElementById('dreamCompanyName').value = '';
         document.getElementById('dreamCompanyUrl').value = '';
     }
 
-    function removeDreamCompany(index) {
+    async function removeDreamCompany(index) {
+        const company = dreamCompanies[index];
+        if (company.db_id) await deleteDreamCompanyFromDb(company.db_id);
+        else localStorage.setItem('dreamCompanies', JSON.stringify(dreamCompanies));
         dreamCompanies.splice(index, 1);
-        localStorage.setItem('dreamCompanies', JSON.stringify(dreamCompanies));
         renderDreamCompanies();
     }
 
@@ -1092,7 +1269,7 @@
     document.getElementById('trackerSection').scrollIntoView({ behavior: 'smooth' });
 }
 
-    function addManualJob() {
+    async function addManualJob() {
     const title = document.getElementById('manualTitle').value.trim();
     const company = document.getElementById('manualCompany').value.trim();
     const location = document.getElementById('manualLocation').value.trim();
@@ -1103,14 +1280,21 @@
         return;
     }
 
-    trackedJobs.push({
+    const newJob = {
         title, company, location, url,
         status: 'saved',
         savedAt: new Date().toISOString(),
         manual: true
-    });
+    };
 
-    localStorage.setItem('trackedJobs', JSON.stringify(trackedJobs));
+    if (currentUser) {
+        const saved = await saveJobToDb(newJob);
+        if (saved) newJob.db_id = saved.id;
+    } else {
+        localStorage.setItem('trackedJobs', JSON.stringify(trackedJobs));
+    }
+
+    trackedJobs.push(newJob);
 
     document.getElementById('manualTitle').value = '';
     document.getElementById('manualCompany').value = '';
@@ -1121,124 +1305,11 @@
     msg.style.cssText = 'background:#eafaf1;color:#2ecc71;border-radius:10px;padding:0.75rem 1rem;margin-bottom:0.75rem;font-weight:500;font-size:0.9rem;border:1.5px solid #2ecc71;';
     msg.innerHTML = `✅ <strong>${title}</strong> saved to your tracker!`;
     document.getElementById('trackerSection').prepend(msg);
-    setTimeout(() => msg.remove(), 15000);
+    setTimeout(() => msg.remove(), 3000);
 
     renderTracker();
 }
-    function openTrackerOverview() {
-    const win = window.open('', '_blank', 'width=900,height=650');
-    const statuses = {
-        saved: { label: '💾 Saved', color: '#6b8a96' },
-        applied: { label: '📤 Applied', color: '#1a8fa8' },
-        interview: { label: '🗣️ Interview', color: '#f4a435' },
-        offer: { label: '🎉 Offer!', color: '#2ecc71' },
-        rejected: { label: '❌ Rejected', color: '#e74c3c' },
-    };
 
-    const counts = Object.keys(statuses).reduce((acc, s) => {
-        acc[s] = trackedJobs.filter(j => j.status === s).length;
-        return acc;
-    }, {});
-
-    const rows = [...trackedJobs]
-        .sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt))
-        .map(job => `
-            <tr>
-                <td style="padding:0.75rem 1rem;border-bottom:1px solid #f0f0f0;font-weight:500;">${job.title || '-'}</td>
-                <td style="padding:0.75rem 1rem;border-bottom:1px solid #f0f0f0;">${job.company || '-'}</td>
-                <td style="padding:0.75rem 1rem;border-bottom:1px solid #f0f0f0;">${job.location || '-'}</td>
-                <td style="padding:0.75rem 1rem;border-bottom:1px solid #f0f0f0;">
-                    <span style="background:${statuses[job.status]?.color}22;color:${statuses[job.status]?.color};padding:3px 10px;border-radius:20px;font-size:0.8rem;font-weight:600;">
-                        ${statuses[job.status]?.label || job.status}
-                    </span>
-                </td>
-                <td style="padding:0.75rem 1rem;border-bottom:1px solid #f0f0f0;font-size:0.8rem;color:#888;">${new Date(job.savedAt).toLocaleDateString()}</td>
-                <td style="padding:0.75rem 1rem;border-bottom:1px solid #f0f0f0;">
-                    ${job.url ? `<a href="${job.url}" target="_blank" style="color:#1a8fa8;font-size:0.85rem;">View ↗</a>` : '-'}
-                </td>
-            </tr>
-        `).join('');
-
-    win.document.write(`
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>My Applications — Job Hunter</title>
-            <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
-            <style>
-                * { margin:0; padding:0; box-sizing:border-box; }
-                body { font-family:'DM Sans',sans-serif; background:#f5f0e8; color:#1a2a32; padding:2rem; }
-                h1 { font-family:'Syne',sans-serif; font-size:1.8rem; margin-bottom:0.5rem; }
-                .stats { display:flex; gap:1rem; margin:1.5rem 0; flex-wrap:wrap; }
-                .stat { background:white; border-radius:12px; padding:1rem 1.5rem; box-shadow:0 2px 12px rgba(0,0,0,0.08); text-align:center; flex:1; min-width:100px; }
-                .stat-number { font-family:'Syne',sans-serif; font-size:2rem; font-weight:800; }
-                .stat-label { font-size:0.8rem; color:#888; margin-top:4px; }
-                table { width:100%; background:white; border-radius:14px; box-shadow:0 2px 12px rgba(0,0,0,0.08); border-collapse:collapse; overflow:hidden; }
-                th { padding:0.75rem 1rem; background:#06293a; color:white; font-family:'Syne',sans-serif; font-size:0.85rem; text-align:left; cursor:pointer; }
-                th:hover { background:#0a4f6e; }
-                tr:hover td { background:#f8f8f8; }
-                .controls { display:flex; gap:1rem; margin-bottom:1rem; align-items:center; }
-                select { padding:0.5rem 1rem; border:1.5px solid #ddd; border-radius:8px; font-family:'DM Sans',sans-serif; background:white; cursor:pointer; outline:none; }
-                .print-btn { padding:0.5rem 1.2rem; background:#f4a435; color:#06293a; border:none; border-radius:8px; font-family:'Syne',sans-serif; font-weight:700; cursor:pointer; }
-            </style>
-        </head>
-        <body>
-            <h1>📋 My Applications</h1>
-            <p style="color:#888;margin-bottom:1rem;">${trackedJobs.length} total applications tracked</p>
-
-            <div class="stats">
-                ${Object.entries(statuses).map(([key, val]) => `
-                    <div class="stat">
-                        <div class="stat-number" style="color:${val.color}">${counts[key]}</div>
-                        <div class="stat-label">${val.label}</div>
-                    </div>
-                `).join('')}
-            </div>
-
-            <div class="controls">
-                <select onchange="filterTable(this.value)">
-                    <option value="all">All statuses</option>
-                    ${Object.entries(statuses).map(([key, val]) => `<option value="${key}">${val.label}</option>`).join('')}
-                </select>
-                <button class="print-btn" onclick="window.print()">🖨️ Print / Export</button>
-            </div>
-
-            <table id="jobTable">
-                <thead>
-                    <tr>
-                        <th onclick="sortTable(0)">Job Title ↕</th>
-                        <th onclick="sortTable(1)">Company ↕</th>
-                        <th onclick="sortTable(2)">Location ↕</th>
-                        <th onclick="sortTable(3)">Status ↕</th>
-                        <th onclick="sortTable(4)">Saved ↕</th>
-                        <th>Link</th>
-                    </tr>
-                </thead>
-                <tbody id="tableBody">${rows}</tbody>
-            </table>
-
-            <script>
-                let allRows = ${JSON.stringify(trackedJobs)};
-
-                function filterTable(status) {
-                    const rows = document.querySelectorAll('#tableBody tr');
-                    rows.forEach(row => {
-                        row.style.display = status === 'all' || row.cells[3].textContent.toLowerCase().includes(status) ? '' : 'none';
-                    });
-                }
-
-                function sortTable(col) {
-                    const tbody = document.getElementById('tableBody');
-                    const rows = Array.from(tbody.querySelectorAll('tr'));
-                    rows.sort((a, b) => a.cells[col].textContent.localeCompare(b.cells[col].textContent));
-                    rows.forEach(r => tbody.appendChild(r));
-                }
-            <\/script>
-        </body>
-        </html>
-    `);
-    win.document.close();
-}
     // Init
     renderExcludeTags();
     renderTracker();
