@@ -4,6 +4,7 @@ from backend.connectors.arbeitnow import fetch_jobs as arbeitnow_jobs
 from backend.connectors.adzuna import fetch_jobs as adzuna_jobs
 from backend.connectors.himalayas import fetch_jobs as himalayas_jobs
 from backend.connectors.jobicy import fetch_jobs as jobicy_jobs
+from backend.connectors.arbeitsagentur import fetch_jobs as arbeitsagentur_jobs
 
 app = FastAPI(title="Job Hunter API")
 
@@ -38,3 +39,8 @@ def get_himalayas_jobs(keywords: str = "data analyst"):
 def get_jobicy_jobs(keywords: str = "data analyst"):
     jobs = jobicy_jobs(keywords=keywords)
     return {"source": "Jobicy", "count": len(jobs), "jobs": jobs}
+
+@app.get("/jobs/arbeitsagentur")
+def get_arbeitsagentur_jobs(keywords: str = "data analyst", location: str = "Deutschland"):
+    jobs = arbeitsagentur_jobs(keywords=keywords, location=location)
+    return {"source": "Arbeitsagentur", "count": len(jobs), "jobs": jobs}
