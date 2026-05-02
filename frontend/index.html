@@ -1042,9 +1042,9 @@ async function deleteKeywordFromDb(keyword) {
             'kombijdepolitie': `https://kombijde.politie.nl/vacatures?query=${keywords}`,
             'infojobs': `https://www.infojobs.net/jobsearch/search-results/list.xhtml?keyword=${keywords}&province=${location}`,
             'trabajos': `https://www.trabajos.com/trabajo/${keywords}/${location}`,
-            'net-empregos': `https://www.net-empregos.com/pesquisa-empregos.asp?q=${keywords}&zona=${location}`,
+            'net-empregos': `https://www.net-empregos.com/empregos.asp?q=${keywords}&where=${location}`,
             'sapo-emprego': `https://emprego.sapo.pt/pesquisar/?q=${keywords}&where=${location}`,
-            'expresso-emprego': `https://expressoemprego.pt/pesquisa?q=${keywords}&l=${location}`,
+            'expresso-emprego': `https://expressoemprego.pt/ofertas-emprego`,
         };
         window.open(urls[platform], '_blank');
     }
