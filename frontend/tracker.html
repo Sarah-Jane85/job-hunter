@@ -319,6 +319,13 @@
 </div>
 
 <script>
+    const SUPABASE_URL = 'https://zusxoqtkyueahjscviwv.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1c3hvcXRreXVlYWhqc2N2aXd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MjY3ODUsImV4cCI6MjA5MzMwMjc4NX0.O5HlHcHF-IX9XYAwm9TaWXmU_mdk-UFENH23GmX7aQY';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let currentUser = null;
+    let currentSort = 'date';
+    let sortAsc = false;
+
     const statuses = {
         saved:     { label: '💾 Saved',     color: '#6b8a96' },
         applied:   { label: '📤 Applied',   color: '#1a8fa8' },
@@ -327,32 +334,61 @@
         rejected:  { label: '❌ Rejected',  color: '#e74c3c' },
     };
 
-    function loadJobs() {
-        return JSON.parse(localStorage.getItem('trackedJobs') || '[]');
+    async function loadJobs() {
+        if (!currentUser) return JSON.parse(localStorage.getItem('trackedJobs') || '[]');
+        const { data } = await sb.from('tracked_jobs').select('*').order('saved_at', { ascending: false });
+        if (!data) return [];
+        return data.map((j, index) => ({
+            _index: index,
+            db_id: j.id,
+            title: j.title,
+            company: j.company,
+            location: j.location,
+            url: j.url,
+            source: j.source,
+            status: j.status,
+            notes: j.notes,
+            manual: j.manual,
+            savedAt: j.saved_at
+        }));
     }
 
-    function saveJobs(jobs) {
-        localStorage.setItem('trackedJobs', JSON.stringify(jobs));
+    async function updateStatus(index, newStatus) {
+        const jobs = await loadJobs();
+        const job = jobs[index];
+        if (job?.db_id) {
+            await sb.from('tracked_jobs').update({ status: newStatus }).eq('id', job.db_id);
+        } else {
+            const localJobs = JSON.parse(localStorage.getItem('trackedJobs') || '[]');
+            localJobs[index].status = newStatus;
+            localStorage.setItem('trackedJobs', JSON.stringify(localJobs));
+        }
+        renderStats(await loadJobs());
     }
 
-    function updateStatus(index, newStatus) {
-        const jobs = loadJobs();
-        jobs[index].status = newStatus;
-        saveJobs(jobs);
-        renderStats(jobs); // add this line
+    async function updateNotes(index, notes) {
+        const jobs = await loadJobs();
+        const job = jobs[index];
+        if (job?.db_id) {
+            await sb.from('tracked_jobs').update({ notes }).eq('id', job.db_id);
+        } else {
+            const localJobs = JSON.parse(localStorage.getItem('trackedJobs') || '[]');
+            localJobs[index].notes = notes;
+            localStorage.setItem('trackedJobs', JSON.stringify(localJobs));
+        }
     }
 
-    function updateNotes(index, notes) {
-        const jobs = loadJobs();
-        jobs[index].notes = notes;
-        saveJobs(jobs);
-    }
-
-    function deleteJob(index) {
+    async function deleteJob(index) {
         if (!confirm('Delete this application?')) return;
-        const jobs = loadJobs();
-        jobs.splice(index, 1);
-        saveJobs(jobs);
+        const jobs = await loadJobs();
+        const job = jobs[index];
+        if (job?.db_id) {
+            await sb.from('tracked_jobs').delete().eq('id', job.db_id);
+        } else {
+            const localJobs = JSON.parse(localStorage.getItem('trackedJobs') || '[]');
+            localJobs.splice(index, 1);
+            localStorage.setItem('trackedJobs', JSON.stringify(localJobs));
+        }
         renderJobs();
     }
 
@@ -361,7 +397,6 @@
             acc[s] = jobs.filter(j => j.status === s).length;
             return acc;
         }, {});
-
         document.getElementById('stats').innerHTML = Object.entries(statuses).map(([key, val]) => `
             <div class="stat">
                 <div class="stat-number" style="color:${val.color}">${counts[key]}</div>
@@ -370,14 +405,13 @@
         `).join('');
     }
 
-    function renderJobs() {
-        const allJobs = loadJobs();
+    async function renderJobs() {
+        const allJobs = await loadJobs();
         const filterStatus = document.getElementById('filterStatus').value;
         const sortBy = document.getElementById('sortBy').value;
         const search = document.getElementById('searchFilter').value.toLowerCase();
 
         document.getElementById('subtitle').textContent = `${allJobs.length} total applications tracked`;
-
         renderStats(allJobs);
 
         let filtered = allJobs.filter((job, i) => {
@@ -391,7 +425,6 @@
             return matchStatus && matchSearch;
         });
 
-        // Sort
         filtered.sort((a, b) => {
             if (sortBy === 'date') return new Date(b.savedAt) - new Date(a.savedAt);
             if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '');
@@ -435,9 +468,7 @@
                     const date = job.savedAt ? new Date(job.savedAt).toLocaleDateString('en-GB') : '';
                     return `
                     <tr style="border-bottom:1px solid var(--foam);" onmouseover="this.style.background='#f8fbfc'" onmouseout="this.style.background='white'">
-                        <td style="padding:0.75rem 1rem;font-weight:500;font-size:0.9rem;max-width:250px;">
-                            ${job.title || 'Untitled'}
-                        </td>
+                        <td style="padding:0.75rem 1rem;font-weight:500;font-size:0.9rem;max-width:250px;">${job.title || 'Untitled'}</td>
                         <td style="padding:0.75rem 1rem;font-size:0.85rem;color:var(--muted);white-space:nowrap;">${job.company || '-'}</td>
                         <td style="padding:0.75rem 1rem;font-size:0.85rem;color:var(--muted);white-space:nowrap;">${job.location || '-'}</td>
                         <td style="padding:0.75rem 1rem;">
@@ -448,14 +479,12 @@
                             </select>
                         </td>
                         <td style="padding:0.75rem 1rem;">
-                            <input
-                                style="width:100%;padding:0.3rem 0.5rem;border:1.5px solid var(--foam);border-radius:6px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;background:var(--sand);min-width:180px;"
+                            <input style="width:100%;padding:0.3rem 0.5rem;border:1.5px solid var(--foam);border-radius:6px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;background:var(--sand);min-width:180px;"
                                 placeholder="Contact, salary, notes..."
                                 value="${(job.notes || '').replace(/"/g, '&quot;')}"
                                 onchange="updateNotes(${i}, this.value)"
                                 onfocus="this.style.borderColor='var(--wave)';this.style.background='white'"
-                                onblur="this.style.borderColor='var(--foam)';this.style.background='var(--sand)'"
-                            >
+                                onblur="this.style.borderColor='var(--foam)';this.style.background='var(--sand)'">
                         </td>
                         <td style="padding:0.75rem 1rem;font-size:0.82rem;color:var(--muted);white-space:nowrap;">${date}</td>
                         <td style="padding:0.75rem 1rem;white-space:nowrap;">
@@ -468,10 +497,7 @@
                 `}).join('')}
             </tbody>
         </table>`;
-    }    
-    // Init
-    let currentSort = 'date';
-    let sortAsc = false;
+    }
 
     function toggleSort(field) {
         if (currentSort === field) sortAsc = !sortAsc;
@@ -479,6 +505,14 @@
         document.getElementById('sortBy').value = field;
         renderJobs();
     }
+
+    // Auth check
+    sb.auth.onAuthStateChange(async (event, session) => {
+        currentUser = session?.user || null;
+        renderJobs();
+    });
+
+    // Init
     renderJobs();
 </script>
 
