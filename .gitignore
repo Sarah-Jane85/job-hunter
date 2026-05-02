@@ -1,0 +1,20 @@
+# Environment variables - NEVER share these!
+.env
+
+# Virtual environment
+.venv
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# uv
+.python-version
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
