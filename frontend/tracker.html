@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Applications — Job Hunter 🌊</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ocean: #0a4f6e;
+            --wave: #1a8fa8;
+            --foam: #e8f4f8;
+            --sand: #f5f0e8;
+            --deep: #06293a;
+            --accent: #f4a435;
+            --text: #1a2a32;
+            --muted: #6b8a96;
+            --white: #ffffff;
+            --card-shadow: 0 4px 24px rgba(10,79,110,0.10);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--sand);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        header {
+            background: var(--deep);
+            padding: 0 2rem;
+            border-bottom: 3px solid var(--accent);
+        }
+
+        .header-inner {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 64px;
+        }
+
+        .logo {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 1.4rem;
+            color: white;
+            text-decoration: none;
+        }
+
+        .logo span { color: var(--accent); }
+
+        .btn-back {
+            padding: 6px 16px;
+            background: transparent;
+            color: white;
+            border: 1.5px solid rgba(255,255,255,0.3);
+            border-radius: 20px;
+            font-family: 'Syne', sans-serif;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+
+        .btn-back:hover { background: rgba(255,255,255,0.1); }
+
+        .main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 2rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .page-subtitle {
+            color: var(--muted);
+            margin-bottom: 2rem;
+        }
+
+        /* STATS */
+        .stats {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            background: var(--white);
+            border-radius: 14px;
+            padding: 1.2rem 1.5rem;
+            box-shadow: var(--card-shadow);
+            text-align: center;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .stat-number {
+            font-family: 'Syne', sans-serif;
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* CONTROLS */
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .controls select, .controls input {
+            padding: 0.5rem 1rem;
+            border: 1.5px solid var(--foam);
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            background: white;
+            color: var(--text);
+            outline: none;
+            cursor: pointer;
+        }
+
+        .btn-print {
+            padding: 0.5rem 1.2rem;
+            background: var(--accent);
+            color: var(--deep);
+            border: none;
+            border-radius: 8px;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        /* JOB CARDS */
+        .job-card {
+            background: var(--white);
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--card-shadow);
+            border-left: 4px solid transparent;
+            transition: border-color 0.15s;
+        }
+
+        .job-card:hover { border-left-color: var(--wave); }
+
+        .job-card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .job-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .job-meta {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-bottom: 0.75rem;
+        }
+
+        .job-meta span { display: flex; align-items: center; gap: 4px; }
+
+        .job-card-bottom {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .status-select {
+            padding: 0.4rem 0.75rem;
+            border: 1.5px solid var(--foam);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            outline: none;
+            background: white;
+        }
+
+        .notes-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 0.4rem 0.75rem;
+            border: 1.5px solid var(--foam);
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-family: 'DM Sans', sans-serif;
+            outline: none;
+            background: var(--sand);
+            color: var(--text);
+        }
+
+        .notes-input:focus { border-color: var(--wave); background: white; }
+
+        .btn-view {
+            padding: 0.4rem 1rem;
+            background: var(--ocean);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-family: 'Syne', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-delete {
+            padding: 0.4rem 0.75rem;
+            background: #fde8e8;
+            color: #c0392b;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .btn-delete:hover { background: #e74c3c; color: white; }
+
+        .status-badge {
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 4rem;
+            color: var(--muted);
+        }
+
+        .empty h3 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        @media print {
+            header, .controls, .btn-delete, .btn-view, .status-select, .notes-input { display: none !important; }
+            body { background: white; }
+            .job-card { box-shadow: none; border: 1px solid #ddd; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-inner">
+        <a class="logo" href="index.html">Job<span>Hunter</span> 🌊</a>
+        <a class="btn-back" href="index.html">← Back to search</a>
+    </div>
+</header>
+
+<div class="main">
+    <h1 class="page-title">📋 My Applications</h1>
+    <p class="page-subtitle" id="subtitle">Loading...</p>
+
+    <!-- STATS -->
+    <div class="stats" id="stats"></div>
+
+    <!-- CONTROLS -->
+    <div class="controls">
+        <select id="filterStatus" onchange="renderJobs()">
+            <option value="all">All statuses</option>
+            <option value="saved">💾 Saved</option>
+            <option value="applied">📤 Applied</option>
+            <option value="interview">🗣️ Interview</option>
+            <option value="offer">🎉 Offer</option>
+            <option value="rejected">❌ Rejected</option>
+        </select>
+        <select id="sortBy" onchange="renderJobs()">
+            <option value="date">Sort: Date saved</option>
+            <option value="title">Sort: Job title</option>
+            <option value="company">Sort: Company</option>
+            <option value="location">Sort: Location</option>
+            <option value="status">Sort: Status</option>
+        </select>
+        <input type="text" id="searchFilter" placeholder="🔍 Search jobs..." oninput="renderJobs()">
+        <button class="btn-print" onclick="window.print()">🖨️ Print / Export</button>
+    </div>
+
+    <!-- JOB LIST -->
+    <div id="jobList"></div>
+</div>
+
+<script>
+    const statuses = {
+        saved:     { label: '💾 Saved',     color: '#6b8a96' },
+        applied:   { label: '📤 Applied',   color: '#1a8fa8' },
+        interview: { label: '🗣️ Interview', color: '#f4a435' },
+        offer:     { label: '🎉 Offer!',    color: '#2ecc71' },
+        rejected:  { label: '❌ Rejected',  color: '#e74c3c' },
+    };
+
+    function loadJobs() {
+        return JSON.parse(localStorage.getItem('trackedJobs') || '[]');
+    }
+
+    function saveJobs(jobs) {
+        localStorage.setItem('trackedJobs', JSON.stringify(jobs));
+    }
+
+    function updateStatus(index, newStatus) {
+        const jobs = loadJobs();
+        jobs[index].status = newStatus;
+        saveJobs(jobs);
+        renderStats(jobs); // add this line
+    }
+
+    function updateNotes(index, notes) {
+        const jobs = loadJobs();
+        jobs[index].notes = notes;
+        saveJobs(jobs);
+    }
+
+    function deleteJob(index) {
+        if (!confirm('Delete this application?')) return;
+        const jobs = loadJobs();
+        jobs.splice(index, 1);
+        saveJobs(jobs);
+        renderJobs();
+    }
+
+    function renderStats(jobs) {
+        const counts = Object.keys(statuses).reduce((acc, s) => {
+            acc[s] = jobs.filter(j => j.status === s).length;
+            return acc;
+        }, {});
+
+        document.getElementById('stats').innerHTML = Object.entries(statuses).map(([key, val]) => `
+            <div class="stat">
+                <div class="stat-number" style="color:${val.color}">${counts[key]}</div>
+                <div class="stat-label">${val.label}</div>
+            </div>
+        `).join('');
+    }
+
+    function renderJobs() {
+        const allJobs = loadJobs();
+        const filterStatus = document.getElementById('filterStatus').value;
+        const sortBy = document.getElementById('sortBy').value;
+        const search = document.getElementById('searchFilter').value.toLowerCase();
+
+        document.getElementById('subtitle').textContent = `${allJobs.length} total applications tracked`;
+
+        renderStats(allJobs);
+
+        let filtered = allJobs.filter((job, i) => {
+            job._index = i;
+            const matchStatus = filterStatus === 'all' || job.status === filterStatus;
+            const matchSearch = !search ||
+                (job.title || '').toLowerCase().includes(search) ||
+                (job.company || '').toLowerCase().includes(search) ||
+                (job.location || '').toLowerCase().includes(search) ||
+                (job.notes || '').toLowerCase().includes(search);
+            return matchStatus && matchSearch;
+        });
+
+        // Sort
+        filtered.sort((a, b) => {
+            if (sortBy === 'date') return new Date(b.savedAt) - new Date(a.savedAt);
+            if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '');
+            if (sortBy === 'company') return (a.company || '').localeCompare(b.company || '');
+            if (sortBy === 'location') return (a.location || '').localeCompare(b.location || '');
+            if (sortBy === 'status') return (a.status || '').localeCompare(b.status || '');
+            return 0;
+        });
+
+        const list = document.getElementById('jobList');
+
+        if (filtered.length === 0) {
+            list.innerHTML = `
+                <div class="empty">
+                    <div style="font-size:3rem;margin-bottom:1rem;">📋</div>
+                    <h3>No applications yet!</h3>
+                    <p>Save jobs from the search page to track them here.</p>
+                    <br>
+                    <a href="index.html" style="color:var(--wave);">← Go find some jobs!</a>
+                </div>`;
+            return;
+        }
+
+        list.innerHTML = `
+        <table style="width:100%;background:white;border-radius:14px;box-shadow:var(--card-shadow);border-collapse:collapse;overflow:hidden;">
+            <thead>
+                <tr>
+                    <th onclick="toggleSort('title')" style="padding:0.75rem 1rem;background:var(--deep);color:white;font-family:'Syne',sans-serif;font-size:0.85rem;text-align:left;cursor:pointer;white-space:nowrap;">Job Title ↕</th>
+                    <th onclick="toggleSort('company')" style="padding:0.75rem 1rem;background:var(--deep);color:white;font-family:'Syne',sans-serif;font-size:0.85rem;text-align:left;cursor:pointer;white-space:nowrap;">Company ↕</th>
+                    <th onclick="toggleSort('location')" style="padding:0.75rem 1rem;background:var(--deep);color:white;font-family:'Syne',sans-serif;font-size:0.85rem;text-align:left;cursor:pointer;white-space:nowrap;">Location ↕</th>
+                    <th onclick="toggleSort('status')" style="padding:0.75rem 1rem;background:var(--deep);color:white;font-family:'Syne',sans-serif;font-size:0.85rem;text-align:left;cursor:pointer;white-space:nowrap;">Status ↕</th>
+                    <th style="padding:0.75rem 1rem;background:var(--deep);color:white;font-family:'Syne',sans-serif;font-size:0.85rem;text-align:left;min-width:200px;">Notes</th>
+                    <th onclick="toggleSort('date')" style="padding:0.75rem 1rem;background:var(--deep);color:white;font-family:'Syne',sans-serif;font-size:0.85rem;text-align:left;cursor:pointer;white-space:nowrap;">Saved ↕</th>
+                    <th style="padding:0.75rem 1rem;background:var(--deep);color:white;font-family:'Syne',sans-serif;font-size:0.85rem;text-align:left;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${filtered.map(job => {
+                    const i = job._index;
+                    const status = statuses[job.status] || statuses.saved;
+                    const date = job.savedAt ? new Date(job.savedAt).toLocaleDateString('en-GB') : '';
+                    return `
+                    <tr style="border-bottom:1px solid var(--foam);" onmouseover="this.style.background='#f8fbfc'" onmouseout="this.style.background='white'">
+                        <td style="padding:0.75rem 1rem;font-weight:500;font-size:0.9rem;max-width:250px;">
+                            ${job.title || 'Untitled'}
+                        </td>
+                        <td style="padding:0.75rem 1rem;font-size:0.85rem;color:var(--muted);white-space:nowrap;">${job.company || '-'}</td>
+                        <td style="padding:0.75rem 1rem;font-size:0.85rem;color:var(--muted);white-space:nowrap;">${job.location || '-'}</td>
+                        <td style="padding:0.75rem 1rem;">
+                            <select onchange="updateStatus(${i}, this.value)" style="padding:0.3rem 0.5rem;border:1.5px solid var(--foam);border-radius:6px;font-size:0.8rem;font-family:'DM Sans',sans-serif;cursor:pointer;outline:none;background:${status.color}22;color:${status.color};font-weight:600;">
+                                ${Object.entries(statuses).map(([key, val]) => `
+                                    <option value="${key}" ${job.status === key ? 'selected' : ''} style="background:white;color:var(--text);">${val.label}</option>
+                                `).join('')}
+                            </select>
+                        </td>
+                        <td style="padding:0.75rem 1rem;">
+                            <input
+                                style="width:100%;padding:0.3rem 0.5rem;border:1.5px solid var(--foam);border-radius:6px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;background:var(--sand);min-width:180px;"
+                                placeholder="Contact, salary, notes..."
+                                value="${(job.notes || '').replace(/"/g, '&quot;')}"
+                                onchange="updateNotes(${i}, this.value)"
+                                onfocus="this.style.borderColor='var(--wave)';this.style.background='white'"
+                                onblur="this.style.borderColor='var(--foam)';this.style.background='var(--sand)'"
+                            >
+                        </td>
+                        <td style="padding:0.75rem 1rem;font-size:0.82rem;color:var(--muted);white-space:nowrap;">${date}</td>
+                        <td style="padding:0.75rem 1rem;white-space:nowrap;">
+                            <div style="display:flex;gap:0.5rem;">
+                                ${job.url ? `<a href="${job.url}" target="_blank" style="padding:0.3rem 0.75rem;background:var(--ocean);color:white;border-radius:6px;font-size:0.8rem;font-family:'Syne',sans-serif;font-weight:600;text-decoration:none;">View ↗</a>` : ''}
+                                <button onclick="deleteJob(${i})" title="Delete" style="padding:0.3rem 0.75rem;background:#fde8e8;color:#c0392b;border:none;border-radius:6px;font-size:0.8rem;cursor:pointer;">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>
+                `}).join('')}
+            </tbody>
+        </table>`;
+    }    
+    // Init
+    let currentSort = 'date';
+    let sortAsc = false;
+
+    function toggleSort(field) {
+        if (currentSort === field) sortAsc = !sortAsc;
+        else { currentSort = field; sortAsc = true; }
+        document.getElementById('sortBy').value = field;
+        renderJobs();
+    }
+    renderJobs();
+</script>
+
+</body>
+</html>
