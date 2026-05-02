@@ -5,6 +5,7 @@ from backend.connectors.adzuna import fetch_jobs as adzuna_jobs
 from backend.connectors.himalayas import fetch_jobs as himalayas_jobs
 from backend.connectors.jobicy import fetch_jobs as jobicy_jobs
 from backend.connectors.arbeitsagentur import fetch_jobs as arbeitsagentur_jobs
+from backend.connectors.nationale_vacaturebank import fetch_jobs as nvb_jobs
 
 app = FastAPI(title="Job Hunter API")
 
@@ -44,3 +45,8 @@ def get_jobicy_jobs(keywords: str = "data analyst"):
 def get_arbeitsagentur_jobs(keywords: str = "data analyst", location: str = "Deutschland"):
     jobs = arbeitsagentur_jobs(keywords=keywords, location=location)
     return {"source": "Arbeitsagentur", "count": len(jobs), "jobs": jobs}
+
+@app.get("/jobs/nationalevacaturebank")
+def get_nvb_jobs(keywords: str = "data analyst", location: str = ""):
+    jobs = nvb_jobs(keywords=keywords, location=location)
+    return {"source": "Nationale Vacaturebank", "count": len(jobs), "jobs": jobs}
