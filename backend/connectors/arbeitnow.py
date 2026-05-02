@@ -4,6 +4,10 @@ def fetch_jobs(keywords: str = "data analyst", location: str = "germany") -> lis
     """Fetch jobs from Arbeitnow API"""
     
     url = "https://www.arbeitnow.com/api/job-board-api"
+
+    params = {}
+    if location:
+        params["location"] = location
     
     response = requests.get(url)
     data = response.json()

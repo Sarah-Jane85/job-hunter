@@ -1,3 +1,5 @@
+from fastapi.concurrency import run_in_threadpool
+import asyncio
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.connectors.arbeitnow import fetch_jobs as arbeitnow_jobs
@@ -6,6 +8,7 @@ from backend.connectors.himalayas import fetch_jobs as himalayas_jobs
 from backend.connectors.jobicy import fetch_jobs as jobicy_jobs
 from backend.connectors.arbeitsagentur import fetch_jobs as arbeitsagentur_jobs
 from backend.connectors.nationale_vacaturebank import fetch_jobs as nvb_jobs
+from backend.connectors.eures import fetch_jobs as eures_jobs
 
 app = FastAPI(title="Job Hunter API")
 
@@ -50,3 +53,37 @@ def get_arbeitsagentur_jobs(keywords: str = "data analyst", location: str = "Deu
 def get_nvb_jobs(keywords: str = "data analyst", location: str = ""):
     jobs = nvb_jobs(keywords=keywords, location=location)
     return {"source": "Nationale Vacaturebank", "count": len(jobs), "jobs": jobs}
+
+@app.get("/jobs/eures")
+def get_eures_jobs(keywords: str = "data analyst", country: str = ""):
+    jobs = eures_jobs(keywords=keywords, country=country)
+    return {"source": "EURES", "count": len(jobs), "jobs": jobs}
+
+@app.get("/jobs/all")
+async def get_all_jobs(keywords: str = "data analyst", location: str = ""):
+    """Search all sources at once and return combined results"""
+
+    results = await asyncio.gather(
+        run_in_threadpool(arbeitnow_jobs, keywords=keywords, location=location),
+        run_in_threadpool(adzuna_jobs, keywords=keywords, country="de", location=location),
+        run_in_threadpool(adzuna_jobs, keywords=keywords, country="nl", location=location),
+        run_in_threadpool(adzuna_jobs, keywords=keywords, country="es", location=location),
+        run_in_threadpool(himalayas_jobs, keywords=keywords),
+        run_in_threadpool(jobicy_jobs, keywords=keywords),
+        run_in_threadpool(arbeitsagentur_jobs, keywords=keywords, location=location or "Deutschland"),
+        return_exceptions=True
+    )
+
+    all_jobs = []
+    for result in results:
+        if isinstance(result, Exception):
+            print(f"Connector error: {result}")
+            continue
+        all_jobs.extend(result)
+
+    return {
+        "keywords": keywords,
+        "location": location,
+        "count": len(all_jobs),
+        "jobs": all_jobs
+    }

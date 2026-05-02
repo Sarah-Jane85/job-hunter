@@ -25,6 +25,9 @@ def fetch_jobs(keywords: str = "data analyst", country: str = "de") -> list:
         "what": keywords,
         "results_per_page": 50,
     }
+    
+    if location:
+        params["where"] = location
 
     response = requests.get(url, params=params)
     data = response.json()
