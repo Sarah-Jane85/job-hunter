@@ -9,6 +9,7 @@ from backend.connectors.jobicy import fetch_jobs as jobicy_jobs
 from backend.connectors.arbeitsagentur import fetch_jobs as arbeitsagentur_jobs
 from backend.connectors.nationale_vacaturebank import fetch_jobs as nvb_jobs
 from backend.connectors.eures import fetch_jobs as eures_jobs
+from backend.utils import normalize_german
 
 app = FastAPI(title="Job Hunter API")
 
@@ -30,8 +31,8 @@ def get_arbeitnow_jobs(keywords: str = "data analyst"):
     return {"source": "Arbeitnow", "count": len(jobs), "jobs": jobs}
 
 @app.get("/jobs/adzuna/{country}")
-def get_adzuna_jobs(country: str = "de", keywords: str = "data analyst"):
-    jobs = adzuna_jobs(keywords=keywords, country=country)
+def get_adzuna_jobs(country: str = "de", keywords: str = "data analyst", location: str = ""):
+    jobs = adzuna_jobs(keywords=keywords, country=country, location=location)
     return {"source": f"Adzuna {country.upper()}", "count": len(jobs), "jobs": jobs}
 
 @app.get("/jobs/himalayas")
@@ -61,6 +62,8 @@ def get_eures_jobs(keywords: str = "data analyst", country: str = ""):
 
 @app.get("/jobs/all")
 async def get_all_jobs(keywords: str = "data analyst", location: str = ""):
+    location = normalize_german(location)
+    keywords = normalize_german(keywords)
     """Search all sources at once and return combined results"""
 
     results = await asyncio.gather(

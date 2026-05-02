@@ -14,7 +14,7 @@ COUNTRIES = {
     "pt": "Portugal 🇵🇹",
 }
 
-def fetch_jobs(keywords: str = "data analyst", country: str = "de") -> list:
+def fetch_jobs(keywords: str = "data analyst", country: str = "de", location: str = "") -> list:
     """Fetch jobs from Adzuna API for a given country"""
 
     url = f"https://api.adzuna.com/v1/api/jobs/{country}/search/1"
