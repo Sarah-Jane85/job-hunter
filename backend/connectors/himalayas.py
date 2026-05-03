@@ -12,16 +12,26 @@ def fetch_jobs(keywords: str = "data analyst") -> list:
 
     response = requests.get(url, params=params)
     data = response.json()
-    location_restrictions = job.get("locationRestrictions", [])
-    location_str = ", ".join([r.get("name", "") for r in location_restrictions]) if location_restrictions else "Worldwide 🌍"
 
     jobs = []
     for job in data.get("jobs", []):
+        location_restrictions = job.get("locationRestrictions", [])
+        
+        if isinstance(location_restrictions, list) and len(location_restrictions) > 0:
+            if isinstance(location_restrictions[0], dict):
+                location_names = [r.get("name", "") for r in location_restrictions]
+            else:
+                location_names = location_restrictions
+            location_str = ", ".join(location_names)
+        else:
+            location_names = []
+            location_str = "Worldwide 🌍"
+
         jobs.append({
             "title": job.get("title"),
             "company": job.get("company", {}).get("name"),
             "location": location_str,
-            "location_restrictions": [r.get("name", "") for r in location_restrictions],
+            "location_restrictions": location_names,
             "remote": True,
             "salary_min": job.get("minSalary"),
             "salary_max": job.get("maxSalary"),

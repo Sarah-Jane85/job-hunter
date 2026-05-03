@@ -15,12 +15,24 @@ def fetch_jobs(keywords: str = "data analyst") -> list:
 
     jobs = []
     for job in data.get("jobs", []):
+        job_geo = job.get("jobGeo", "Anywhere")
+        
+        # Normalize location restrictions
+        if not job_geo or job_geo.lower() in ["anywhere", "worldwide", ""]:
+            location_str = "Worldwide 🌍"
+            location_restrictions = []
+        else:
+            location_str = job_geo
+            location_restrictions = [job_geo]
+
         jobs.append({
             "title": job.get("jobTitle"),
             "company": job.get("companyName"),
-            "location": "Remote 🌍",
-            "salary_min": None,
-            "salary_max": None,
+            "location": location_str,
+            "location_restrictions": location_restrictions,
+            "remote": True,
+            "salary_min": job.get("annualSalaryMin"),
+            "salary_max": job.get("annualSalaryMax"),
             "url": job.get("url"),
             "description": job.get("jobExcerpt", "")[:300],
             "source": "Jobicy 🌍"
