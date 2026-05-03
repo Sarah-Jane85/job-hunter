@@ -662,16 +662,16 @@
                 <label class="toggle"><input type="checkbox" id="toggle-adzuna-de" checked><span class="toggle-slider"></span></label>
             </div>
             <div class="platform-toggle">
+                <span class="platform-name"><span class="platform-flag">🇩🇪</span> Arbeitsagentur</span>
+                <label class="toggle"><input type="checkbox" id="toggle-arbeitsagentur" checked><span class="toggle-slider"></span></label>
+            </div>
+            <div class="platform-toggle">
                 <span class="platform-name"><span class="platform-flag">🇳🇱</span> Adzuna NL</span>
                 <label class="toggle"><input type="checkbox" id="toggle-adzuna-nl" checked><span class="toggle-slider"></span></label>
             </div>
             <div class="platform-toggle">
                 <span class="platform-name"><span class="platform-flag">🇪🇸</span> Adzuna ES</span>
                 <label class="toggle"><input type="checkbox" id="toggle-adzuna-es" checked><span class="toggle-slider"></span></label>
-            </div>
-            <div class="platform-toggle">
-                <span class="platform-name"><span class="platform-flag">🇩🇪</span> Arbeitsagentur</span>
-                <label class="toggle"><input type="checkbox" id="toggle-arbeitsagentur" checked><span class="toggle-slider"></span></label>
             </div>
             <div class="platform-toggle">
                 <span class="platform-name"><span class="platform-flag">🌍</span> Himalayas</span>
@@ -729,6 +729,10 @@
             </a>
             <a class="direct-link" href="#" onclick="openDirectLink('xing')">
                 <span>🇩🇪 Xing</span>
+                <span class="direct-link-arrow">↗</span>
+            </a>
+            <a class="direct-link" href="#" onclick="openDirectLink('werkeningelderland')">
+                <span>🇳🇱 Werken in Gelderland</span>
                 <span class="direct-link-arrow">↗</span>
             </a>
             <a class="direct-link" href="#" onclick="openDirectLink('indeed-nl')">
@@ -1110,6 +1114,7 @@ async function deleteKeywordFromDb(keyword) {
             'stepstone': `https://www.stepstone.de/jobs/suche/?q=${keywords}&where=${location}`,
             'indeed-de': `https://de.indeed.com/jobs?q=${keywords}&l=${location}`,
             'indeed-nl': `https://nl.indeed.com/jobs?q=${keywords}&l=${location}`,
+            'werkeningelderland': `https://www.werkeningelderland.nl/vacatures/?search=${keywords}`,
             'nvb': `https://www.nationalevacaturebank.nl/vacature/zoeken?query=${keywords}&city=${location}`,
             'werkenvoornederland': `https://www.werkenvoornederland.nl/vacatures?search=${keywords}&location=${location}`,
             'eures': `https://europa.eu/eures/portal/jv-se/search?keywordsEverywhere=${keywords}&locationCode=${location}&lang=en`,
@@ -1236,7 +1241,7 @@ async function deleteKeywordFromDb(keyword) {
                     ${job.remote ? `<span class="job-meta-item"><span class="job-meta-icon">🏠</span>Remote</span>` : ''}
                     ${salary ? `<span class="salary-badge">${salary}</span>` : ''}
                 </div>
-                ${job.description ? `<div class="job-description">${job.description.replace(/<[^>]*>/g, '')}</div>` : ''}
+                ${job.description ? `<div class="job-description">${job.description.replace(/<\/?[^>]+(>|$)/g, '').replace(/&[^;]+;/g, ' ')}</div>` : ''}
                 <div class="job-actions">
                     ${job.url ? `<a class="btn-apply" href="${job.url}" target="_blank">Apply →</a>` : ''}
                     <button class="btn-save ${isSaved ? 'saved' : ''}" onclick="toggleSave(${i})" id="save-${i}">
