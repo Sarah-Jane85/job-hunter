@@ -693,14 +693,14 @@
                 </label>
                 <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;cursor:pointer;">
                     <input type="radio" name="remoteFilter" value="worldwide" onchange="renderJobs()">
-                    🌍 Worldwide/Europe only
+                    Match my search location
                 </label>
                 <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;cursor:pointer;">
                     <input type="radio" name="remoteFilter" value="exclude" onchange="renderJobs()">
                     Exclude remote
                 </label>
             </div>
-        </div>   
+        </div>
 
         <!-- EXCLUDE KEYWORDS -->
         <div class="sidebar-card">
@@ -783,6 +783,7 @@
             <div class="search-bar" style="flex-direction:column;gap:0.75rem;">
                 <input type="text" id="keywordsInput" placeholder="Job title (e.g. data analyst)" value="data analyst" style="width:100%;padding:0.85rem 1.2rem;border:1.5px solid var(--foam);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:1rem;outline:none;background:var(--sand);color:var(--text);">
                 <input type="text" id="locationInput" placeholder="Location (e.g. Düsseldorf)" style="width:100%;padding:0.85rem 1.2rem;border:1.5px solid var(--foam);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:1rem;outline:none;background:var(--sand);color:var(--text);">
+                <input type="text" id="remoteCountryInput" placeholder="Remote jobs for: (e.g. Germany, EU)" style="width:100%;padding:0.85rem 1.2rem;border:1.5px solid var(--foam);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:1rem;outline:none;background:var(--sand);color:var(--text);">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;">
                     <button class="btn-search" onclick="searchJobs()" style="flex:1;">Search Jobs</button>
                     <select class="sort-select" id="sortSelect" onchange="renderJobs()">
@@ -839,17 +840,50 @@
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let currentUser = null;
 
-    const remoteRestrictionPhrases = [
-        'us only', 'usa only', 'united states only',
-        'must be located in the us', 'must be based in the us',
-        'authorized to work in the us', 'authorised to work in the us',
-        'right to work in the us', 'us residents only',
-        'uk only', 'united kingdom only', 'must be based in the uk',
-        'right to work in the uk', 'uk residents only',
-        'canada only', 'must be based in canada',
-        'australia only', 'must be based in australia',
-        'north america only', 'americas only',
-    ];
+    const countryKeywords = {
+    'de': ['germany', 'german', 'deutschland', 'düsseldorf', 'duesseldorf', 'berlin', 'munich', 'münchen', 'hamburg', 'cologne', 'köln', 'frankfurt', 'emmerich', 'kleve'],
+    'nl': ['netherlands', 'dutch', 'holland', 'nederland', 'arnhem', 'amsterdam', 'rotterdam', 'utrecht', 'zevenaar'],
+    'pt': ['portugal', 'portuguese', 'lisboa', 'lisbon', 'porto', 'braga'],
+    'es': ['spain', 'spanish', 'españa', 'madrid', 'barcelona', 'valencia', 'seville'],
+    'eu': ['europe', 'european', 'eu', 'emea', 'worldwide', 'global', 'anywhere', 'remote-first', 'fully remote', 'location independent'],
+};
+
+const nonEuCountries = ['us only', 'usa only', 'united states only', 'uk only', 'united kingdom only', 
+    'canada only', 'australia only', 'north america only', 'americas only',
+    'must be located in the us', 'must be based in the us', 'authorized to work in the us',
+    'right to work in the us', 'must be based in the uk', 'right to work in the uk'];
+
+function detectSearchCountry(location) {
+    const remoteInput = document.getElementById('remoteCountryInput')?.value || '';
+    const loc = (remoteInput || location || '').toLowerCase();
+    if (!loc) return null;
+    for (const [country, keywords] of Object.entries(countryKeywords)) {
+        if (keywords.some(kw => loc.includes(kw))) return country;
+    }
+    return null;
+}
+
+function isRemoteJobRelevant(job, searchCountry) {
+    const text = `${job.title} ${job.description} ${job.location}`.toLowerCase();
+    
+    // Always filter out non-EU restricted jobs
+    if (nonEuCountries.some(phrase => text.includes(phrase))) return false;
+    
+    // If no search country detected, show all remaining remote jobs
+    if (!searchCountry || searchCountry === 'eu') return true;
+    
+    // Check if job mentions our search country or is open to EU/worldwide
+    const searchCountryKeywords = countryKeywords[searchCountry] || [];
+    const euKeywords = countryKeywords['eu'];
+    
+    const mentionsOurCountry = searchCountryKeywords.some(kw => text.includes(kw));
+    const mentionsEU = euKeywords.some(kw => text.includes(kw));
+    const hasNoCountryRestriction = !Object.entries(countryKeywords)
+        .filter(([k]) => k !== 'eu')
+        .some(([k, keywords]) => k !== searchCountry && keywords.some(kw => text.includes(kw)));
+
+    return mentionsOurCountry || mentionsEU || hasNoCountryRestriction;
+}
 
     // Auth functions
 async function handleAuth() {
@@ -1115,12 +1149,14 @@ async function deleteKeywordFromDb(keyword) {
 
         // Remote filter
         const remoteFilter = document.querySelector('input[name="remoteFilter"]:checked')?.value || 'all';
+        const searchLocation = document.getElementById('locationInput').value || '';
+        const searchCountry = detectSearchCountry(searchLocation);
 
         if (remoteFilter === 'worldwide') {
             filtered = filtered.filter(job => {
-                if (!job.remote && job.source !== 'Himalayas 🌍' && job.source !== 'Jobicy 🌍') return true;
-                const text = `${job.title} ${job.description}`.toLowerCase();
-                return !remoteRestrictionPhrases.some(phrase => text.includes(phrase));
+                const isRemote = job.remote || job.source === 'Himalayas 🌍' || job.source === 'Jobicy 🌍';
+                if (!isRemote) return true;
+                return isRemoteJobRelevant(job, searchCountry);
             });
         }
 
@@ -1130,7 +1166,7 @@ async function deleteKeywordFromDb(keyword) {
                 job.source !== 'Jobicy 🌍'
             );
         }
-        
+
         // Platform toggles
         const platforms = {
             'arbeitnow': 'Arbeitnow',
@@ -1368,6 +1404,7 @@ async function deleteKeywordFromDb(keyword) {
     // Search on Enter
     document.getElementById('keywordsInput').addEventListener('keydown', e => { if(e.key === 'Enter') searchJobs(); });
     document.getElementById('locationInput').addEventListener('keydown', e => { if(e.key === 'Enter') searchJobs(); });
+    document.getElementById('remoteCountryInput').addEventListener('keydown', e => { if(e.key === 'Enter') searchJobs(); });
 </script>
 </body>
 </html>
