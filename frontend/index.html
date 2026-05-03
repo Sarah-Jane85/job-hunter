@@ -864,25 +864,34 @@ function detectSearchCountry(location) {
 }
 
 function isRemoteJobRelevant(job, searchCountry) {
-    const text = `${job.title} ${job.description} ${job.location}`.toLowerCase();
+    // Use structured location_restrictions if available
+    const restrictions = job.location_restrictions || [];
     
-    // Always filter out non-EU restricted jobs
-    if (nonEuCountries.some(phrase => text.includes(phrase))) return false;
+    // Empty restrictions = worldwide, always show
+    if (restrictions.length === 0) return true;
     
-    // If no search country detected, show all remaining remote jobs
+    // Always filter out non-EU countries
+    const nonEuCountryNames = ['United States', 'Canada', 'Australia', 'United Kingdom', 'Brazil', 'India', 'Mexico'];
+    const hasOnlyNonEu = restrictions.every(r => nonEuCountryNames.includes(r));
+    if (hasOnlyNonEu) return false;
+    
+    // If no search country, show all EU/worldwide jobs
     if (!searchCountry || searchCountry === 'eu') return true;
     
-    // Check if job mentions our search country or is open to EU/worldwide
-    const searchCountryKeywords = countryKeywords[searchCountry] || [];
-    const euKeywords = countryKeywords['eu'];
+    // Map search country to country name
+    const countryNames = {
+        'de': 'Germany',
+        'nl': 'Netherlands',
+        'pt': 'Portugal',
+        'es': 'Spain',
+    };
     
-    const mentionsOurCountry = searchCountryKeywords.some(kw => text.includes(kw));
-    const mentionsEU = euKeywords.some(kw => text.includes(kw));
-    const hasNoCountryRestriction = !Object.entries(countryKeywords)
-        .filter(([k]) => k !== 'eu')
-        .some(([k, keywords]) => k !== searchCountry && keywords.some(kw => text.includes(kw)));
-
-    return mentionsOurCountry || mentionsEU || hasNoCountryRestriction;
+    const searchCountryName = countryNames[searchCountry];
+    
+    // Show if job is open to our country or worldwide
+    return restrictions.includes(searchCountryName) || 
+           restrictions.includes('Europe') ||
+           restrictions.length === 0;
 }
 
     // Auth functions
