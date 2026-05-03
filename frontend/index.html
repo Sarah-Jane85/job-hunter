@@ -683,6 +683,25 @@
             </div>
         </div>
 
+        <!-- REMOTE FILTER -->
+        <div class="sidebar-card">
+            <div class="sidebar-title">Remote jobs</div>
+            <div style="display:flex;flex-direction:column;gap:0.5rem;">
+                <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;cursor:pointer;">
+                    <input type="radio" name="remoteFilter" value="all" checked onchange="renderJobs()">
+                    All remote jobs
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;cursor:pointer;">
+                    <input type="radio" name="remoteFilter" value="worldwide" onchange="renderJobs()">
+                    🌍 Worldwide/Europe only
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;font-size:0.9rem;cursor:pointer;">
+                    <input type="radio" name="remoteFilter" value="exclude" onchange="renderJobs()">
+                    Exclude remote
+                </label>
+            </div>
+        </div>   
+
         <!-- EXCLUDE KEYWORDS -->
         <div class="sidebar-card">
             <div class="sidebar-title">Exclude keywords</div>
@@ -819,6 +838,19 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp1c3hvcXRreXVlYWhqc2N2aXd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3MjY3ODUsImV4cCI6MjA5MzMwMjc4NX0.O5HlHcHF-IX9XYAwm9TaWXmU_mdk-UFENH23GmX7aQY';
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let currentUser = null;
+
+    const remoteRestrictionPhrases = [
+        'us only', 'usa only', 'united states only',
+        'must be located in the us', 'must be based in the us',
+        'authorized to work in the us', 'authorised to work in the us',
+        'right to work in the us', 'us residents only',
+        'uk only', 'united kingdom only', 'must be based in the uk',
+        'right to work in the uk', 'uk residents only',
+        'canada only', 'must be based in canada',
+        'australia only', 'must be based in australia',
+        'north america only', 'americas only',
+    ];
+
     // Auth functions
 async function handleAuth() {
     if (currentUser) {
@@ -1081,6 +1113,24 @@ async function deleteKeywordFromDb(keyword) {
             return !excludeKeywords.some(kw => text.includes(kw));
         });
 
+        // Remote filter
+        const remoteFilter = document.querySelector('input[name="remoteFilter"]:checked')?.value || 'all';
+
+        if (remoteFilter === 'worldwide') {
+            filtered = filtered.filter(job => {
+                if (!job.remote && job.source !== 'Himalayas 🌍' && job.source !== 'Jobicy 🌍') return true;
+                const text = `${job.title} ${job.description}`.toLowerCase();
+                return !remoteRestrictionPhrases.some(phrase => text.includes(phrase));
+            });
+        }
+
+        if (remoteFilter === 'exclude') {
+            filtered = filtered.filter(job => !job.remote && 
+                job.source !== 'Himalayas 🌍' && 
+                job.source !== 'Jobicy 🌍'
+            );
+        }
+        
         // Platform toggles
         const platforms = {
             'arbeitnow': 'Arbeitnow',
