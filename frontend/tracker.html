@@ -382,7 +382,7 @@
         notes.push({ text, date: new Date().toLocaleDateString('en-GB') });
 
         if (job?.db_id) {
-            await sb.from('tracked_jobs').update({ notes: JSON.stringify(notes) }).eq('id', job.db_id);
+            await sb.from('tracked_jobs').update({ notes: notes }).eq('id', job.db_id);
         } else {
             const localJobs = JSON.parse(localStorage.getItem('trackedJobs') || '[]');
             localJobs[index].notes = notes;
@@ -401,7 +401,7 @@
         notes.splice(noteIndex, 1);
 
         if (job?.db_id) {
-            await sb.from('tracked_jobs').update({ notes: JSON.stringify(notes) }).eq('id', job.db_id);
+            await sb.from('tracked_jobs').update({ notes: notes }).eq('id', job.db_id);
         } else {
             const localJobs = JSON.parse(localStorage.getItem('trackedJobs') || '[]');
             localJobs[jobIndex].notes = notes;
@@ -415,7 +415,7 @@
         const jobs = await loadJobs();
         const job = jobs[index];
         if (job?.db_id) {
-            await sb.from('tracked_jobs').update({ notes: JSON.stringify(notes) }).eq('id', job.db_id);
+            await sb.from('tracked_jobs').update({ notes: notes }).eq('id', job.db_id);
         } else {
             const localJobs = JSON.parse(localStorage.getItem('trackedJobs') || '[]');
             localJobs[index].notes = notes;
@@ -433,7 +433,7 @@
         notes[noteIndex].text = newText;
 
         if (job?.db_id) {
-            await sb.from('tracked_jobs').update({ notes: JSON.stringify(notes) }).eq('id', job.db_id);
+            await sb.from('tracked_jobs').update({ notes: notes }).eq('id', job.db_id);
         } else {
             const localJobs = JSON.parse(localStorage.getItem('trackedJobs') || '[]');
             localJobs[jobIndex].notes = notes;
