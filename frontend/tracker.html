@@ -366,11 +366,56 @@
         renderStats(await loadJobs());
     }
 
+    async function addNote(index) {
+        const input = document.getElementById(`note-input-${index}`);
+        const text = input.value.trim();
+        if (!text) return;
+
+        const jobs = await loadJobs();
+        const job = jobs[index];
+        
+        // Get existing notes array
+        let notes = [];
+        if (Array.isArray(job.notes)) notes = job.notes;
+        else if (job.notes && typeof job.notes === 'string') notes = [{text: job.notes, date: ''}];
+        
+        notes.push({ text, date: new Date().toLocaleDateString('en-GB') });
+
+        if (job?.db_id) {
+            await sb.from('tracked_jobs').update({ notes: JSON.stringify(notes) }).eq('id', job.db_id);
+        } else {
+            const localJobs = JSON.parse(localStorage.getItem('trackedJobs') || '[]');
+            localJobs[index].notes = notes;
+            localStorage.setItem('trackedJobs', JSON.stringify(localJobs));
+        }
+
+        input.value = '';
+        renderJobs();
+    }
+
+    async function deleteNote(jobIndex, noteIndex) {
+        const jobs = await loadJobs();
+        const job = jobs[jobIndex];
+        
+        let notes = Array.isArray(job.notes) ? job.notes : [{text: job.notes, date: ''}];
+        notes.splice(noteIndex, 1);
+
+        if (job?.db_id) {
+            await sb.from('tracked_jobs').update({ notes: JSON.stringify(notes) }).eq('id', job.db_id);
+        } else {
+            const localJobs = JSON.parse(localStorage.getItem('trackedJobs') || '[]');
+            localJobs[jobIndex].notes = notes;
+            localStorage.setItem('trackedJobs', JSON.stringify(localJobs));
+        }
+
+        renderJobs();
+    }
+
     async function updateNotes(index, notes) {
         const jobs = await loadJobs();
         const job = jobs[index];
         if (job?.db_id) {
-            await sb.from('tracked_jobs').update({ notes }).eq('id', job.db_id);
+            await sb.from('tracked_jobs').update({ notes: JSON.stringify(notes) }).eq('id', job.db_id);
         } else {
             const localJobs = JSON.parse(localStorage.getItem('trackedJobs') || '[]');
             localJobs[index].notes = notes;
@@ -478,13 +523,26 @@
                                 `).join('')}
                             </select>
                         </td>
-                        <td style="padding:0.75rem 1rem;">
-                            <input style="width:100%;padding:0.3rem 0.5rem;border:1.5px solid var(--foam);border-radius:6px;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;background:var(--sand);min-width:180px;"
-                                placeholder="Contact, salary, notes..."
-                                value="${(job.notes || '').replace(/"/g, '&quot;')}"
-                                onchange="updateNotes(${i}, this.value)"
-                                onfocus="this.style.borderColor='var(--wave)';this.style.background='white'"
-                                onblur="this.style.borderColor='var(--foam)';this.style.background='var(--sand)'">
+                        <td style="padding:0.75rem 1rem;min-width:220px;">
+                            <div id="notes-${i}" style="display:flex;flex-direction:column;gap:4px;">
+                                ${(Array.isArray(job.notes) ? job.notes : (job.notes ? [{text: job.notes, date: ''}] : [])).map((note, ni) => `
+                                    <div style="display:flex;align-items:flex-start;gap:4px;background:var(--foam);border-radius:6px;padding:4px 6px;">
+                                        <span style="color:var(--wave);margin-top:2px;">•</span>
+                                        <span style="flex:1;font-size:0.8rem;word-break:break-word;">${note.text}</span>
+                                        <button onclick="deleteNote(${i}, ${ni})" style="background:none;border:none;cursor:pointer;color:#e74c3c;font-size:0.75rem;padding:0;opacity:0.6;flex-shrink:0;" title="Delete note">🗑️</button>
+                                    </div>
+                                `).join('')}
+                                <div style="display:flex;gap:4px;margin-top:2px;">
+                                    <input 
+                                        id="note-input-${i}"
+                                        style="flex:1;padding:0.3rem 0.5rem;border:1.5px solid var(--foam);border-radius:6px;font-size:0.8rem;font-family:'DM Sans',sans-serif;outline:none;background:var(--sand);min-width:120px;"
+                                        placeholder="+ Add note..."
+                                        onkeydown="if(event.key==='Enter'){addNote(${i});}"
+                                        onfocus="this.style.borderColor='var(--wave)';this.style.background='white'"
+                                        onblur="this.style.borderColor='var(--foam)';this.style.background='var(--sand)'">
+                                    <button onclick="addNote(${i})" style="padding:0.3rem 0.5rem;background:var(--ocean);color:white;border:none;border-radius:6px;font-size:0.75rem;cursor:pointer;flex-shrink:0;">+</button>
+                                </div>
+                            </div>
                         </td>
                         <td style="padding:0.75rem 1rem;font-size:0.82rem;color:var(--muted);white-space:nowrap;">${date}</td>
                         <td style="padding:0.75rem 1rem;white-space:nowrap;">
