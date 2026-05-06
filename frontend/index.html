@@ -1256,6 +1256,7 @@ async function deleteKeywordFromDb(keyword) {
 
     // Save/unsave jobs
     async function toggleSave(index) {
+        console.log('toggleSave called', index, currentUser);
     const job = allJobs.filter(job => {
         const text = `${job.title} ${job.company} ${job.description}`.toLowerCase();
         return !excludeKeywords.some(kw => text.includes(kw));
