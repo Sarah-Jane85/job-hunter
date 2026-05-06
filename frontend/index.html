@@ -1255,20 +1255,21 @@ async function deleteKeywordFromDb(keyword) {
     }
 
     // Save/unsave jobs
-    async function toggleSave(index) {
-        console.log('toggleSave called', index, currentUser);
-        
-        const job = allJobs.filter(job => {
-            const text = `${job.title} ${job.company} ${job.description}`.toLowerCase();
-            return !excludeKeywords.some(kw => text.includes(kw));
-        })[index];
+async function toggleSave(index) {
+    console.log('toggleSave called', index, currentUser);
+    
+    const job = allJobs.filter(job => {
+        const text = `${job.title} ${job.company} ${job.description}`.toLowerCase();
+        return !excludeKeywords.some(kw => text.includes(kw));
+    })[index];
 
-        console.log('job found:', job);
+    console.log('job found:', job);
 
-        if (!job) return;
+    if (!job) return;
 
-        const existingIndex = trackedJobs.findIndex(t => t.url === job.url);
-        console.log('existingIndex:', existingIndex);
+    const existingIndex = trackedJobs.findIndex(t => t.url === job.url);
+    console.log('existingIndex:', existingIndex);
+
     if (existingIndex >= 0) {
         const existing = trackedJobs[existingIndex];
         if (existing.db_id) await deleteJobFromDb(existing.db_id);
@@ -1276,8 +1277,10 @@ async function deleteKeywordFromDb(keyword) {
         trackedJobs.splice(existingIndex, 1);
     } else {
         const newJob = { ...job, status: 'saved', savedAt: new Date().toISOString() };
+        console.log('saving new job:', newJob);
         if (currentUser) {
             const saved = await saveJobToDb(newJob);
+            console.log('saved result:', saved);
             if (saved) newJob.db_id = saved.id;
         } else {
             trackedJobs.push(newJob);
