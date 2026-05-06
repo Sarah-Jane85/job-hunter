@@ -1257,14 +1257,18 @@ async function deleteKeywordFromDb(keyword) {
     // Save/unsave jobs
     async function toggleSave(index) {
         console.log('toggleSave called', index, currentUser);
-    const job = allJobs.filter(job => {
-        const text = `${job.title} ${job.company} ${job.description}`.toLowerCase();
-        return !excludeKeywords.some(kw => text.includes(kw));
-    })[index];
+        
+        const job = allJobs.filter(job => {
+            const text = `${job.title} ${job.company} ${job.description}`.toLowerCase();
+            return !excludeKeywords.some(kw => text.includes(kw));
+        })[index];
 
-    if (!job) return;
+        console.log('job found:', job);
 
-    const existingIndex = trackedJobs.findIndex(t => t.url === job.url);
+        if (!job) return;
+
+        const existingIndex = trackedJobs.findIndex(t => t.url === job.url);
+        console.log('existingIndex:', existingIndex);
     if (existingIndex >= 0) {
         const existing = trackedJobs[existingIndex];
         if (existing.db_id) await deleteJobFromDb(existing.db_id);
