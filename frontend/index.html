@@ -1244,7 +1244,7 @@ async function deleteKeywordFromDb(keyword) {
                 ${job.description ? `<div class="job-description">${job.description.replace(/<\/?[^>]+(>|$)/g, '').replace(/&[^;]+;/g, ' ')}</div>` : ''}
                 <div class="job-actions">
                     ${job.url ? `<a class="btn-apply" href="${job.url}" target="_blank">Apply →</a>` : ''}
-                    <button class="btn-save ${isSaved ? 'saved' : ''}" onclick="toggleSave(${i})" id="save-${i}">
+                    <button class="btn-save ${isSaved ? 'saved' : ''}" onclick="toggleSaveByUrl('${job.url}')" id="save-${i}">
                         ${isSaved ? '⭐ Saved' : '☆ Save'}
                     </button>
                 </div>
